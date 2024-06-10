@@ -216,6 +216,8 @@ const HEADER_KEY: &[u8] = b"header";
 /// next block.
 const EXTRINSICS_KEY: &[u8] = b"extrinsics";
 
+const CODE_KEY: &[u8] = b":code";
+
 /// The block number type. You should not change this.
 type BlockNumber = u32;
 
@@ -383,10 +385,13 @@ impl Runtime {
 	pub(crate) fn do_apply_extrinsic(ext: <Block as BlockT>::Extrinsic) -> ApplyExtrinsicResult {
 		let dispatch_outcome = match ext.clone().function {
 			Call::SetValue { value } => {
-				Self::mutate_state(VALUE_KEY, |current: &mut u32| *current = value);
+				sp_io::storage::set(VALUE_KEY, &value.encode());
 				Ok(())
 			},
-			Call::UpgradeCode { code } => Ok(())
+			Call::UpgradeCode { code } => {
+				sp_io::storage::set(CODE_KEY, &code);
+				Ok(())
+			},
 			_ => Ok(()),
 		};
 
@@ -438,7 +443,7 @@ impl Runtime {
 
 	pub(crate) fn do_get_preset(id: &Option<sp_genesis_builder::PresetId>) -> Option<Vec<u8>> {
 		match id {
-			Some(preset_id) =>
+			Some(preset_id) => {
 				if preset_id.as_ref() == "special-preset-1".as_bytes() {
 					Some(
 						serde_json::to_string(&RuntimeGenesis { value: 42 * 2 })
@@ -448,7 +453,8 @@ impl Runtime {
 					)
 				} else {
 					None
-				},
+				}
+			},
 			// none indicates the default preset.
 			None => Some(
 				serde_json::to_string(&RuntimeGenesis { value: 42 })
