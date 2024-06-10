@@ -382,6 +382,11 @@ impl Runtime {
 	/// In our template, we call into this from both block authoring, and block import.
 	pub(crate) fn do_apply_extrinsic(ext: <Block as BlockT>::Extrinsic) -> ApplyExtrinsicResult {
 		let dispatch_outcome = match ext.clone().function {
+			Call::SetValue { value } => {
+				Self::mutate_state(VALUE_KEY, |current: &mut u32| *current = value);
+				Ok(())
+			},
+			Call::UpgradeCode { code } => Ok(())
 			_ => Ok(()),
 		};
 
